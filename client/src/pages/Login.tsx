@@ -1,6 +1,6 @@
 // src/pages/Login.tsx
 import { useState } from 'react';
-import { login } from '../firebase/auth';
+import { login, getToken } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
@@ -12,6 +12,10 @@ export default function Login() {
         e.preventDefault();
         try {
             await login(email, password);
+            const token = await getToken();
+            if (token) {
+                localStorage.setItem('authToken', token);  
+            }
             navigate('/dashboard');
         } catch (err) {
             console.error('Login failed:', err);

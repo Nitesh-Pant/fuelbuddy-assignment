@@ -12,7 +12,7 @@ export default function Signup() {
       e.preventDefault();
       try {
         await signup(email, password);
-        navigate('/dashboard');
+        navigate('/login');
       } catch (err) {
         console.error('Signup failed:', err);
       }
