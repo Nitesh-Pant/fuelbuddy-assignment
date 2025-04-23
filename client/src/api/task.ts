@@ -27,7 +27,13 @@ export const getMyTasks = async (userId: string) => {
 
 // Get shared tasks
 export const getSharedTasks = async (userId: string) => {
-    const response = await axios.get(`${BASE_URL}/tasks/shared/${userId}`);
+    const response = await axios.get(`${BASE_URL}/shareByMe/${userId}`);
+    return response.data;
+};
+
+// Get shared to me tasks
+export const getSharedToMeTasks = async (userId: string) => {
+    const response = await axios.get(`${BASE_URL}/shareToMe/${userId}`);
     return response.data;
 };
 
@@ -40,9 +46,9 @@ export const getAllUsers = async () => {
 
 
 // Share task
-export const shareTask = async (taskId: string, shareBy: string, sharedTo: any) => {
+export const shareTask = async (taskId: string, sharedTo: string, shareBy: any) => {
     console.log(taskId, shareBy, sharedTo);
-    
+
     const response = await axios.post(`${BASE_URL}/shareTask`, {
         taskId: taskId,
         sharedBy: shareBy,

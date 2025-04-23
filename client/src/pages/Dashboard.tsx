@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { logout } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { createTask, getAllTasks, getAllUsers, getMyTasks, getSharedTasks, shareTask } from '../api/task';
+import { createTask, getAllTasks, getAllUsers, getMyTasks, getSharedTasks, getSharedToMeTasks, shareTask } from '../api/task';
 import { auth } from '../firebase/config';
+import SharedByMeTable from '../components/SharedByMeTable';
+import SharedToMeTable from '../components/SharedToMeTable';
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const [newTask, setNewTask] = useState('');
-    const [tab, setTab] = useState<'all' | 'mine' | 'shared'>('all');
+    const [tab, setTab] = useState<'all' | 'mine' | 'shared' | 'shareToMe'>('all');
     const [tasks, setTasks] = useState<any[]>([]);
 
     const [showModal, setShowModal] = useState(false);
@@ -44,7 +46,12 @@ export default function Dashboard() {
             setTasks(fetchedTasks?.formattedTasks);
         } else if (tab === 'shared') {
             const fetchedTasks = await getSharedTasks(userId); // Get tasks shared with the user
-            setTasks(fetchedTasks?.tasks);
+
+            setTasks(fetchedTasks?.sharedTasks);
+        } else {
+            const fetchedTasks = await getSharedToMeTasks(userId); // Get tasks shared with the user
+
+            setTasks(fetchedTasks?.sharedTasks);
         }
     };
 
@@ -52,12 +59,16 @@ export default function Dashboard() {
 
     useEffect(() => {
         loadTasks();
+        console.log(tab);
+        
     }, [tab]);
 
 
     const handleShare = async () => {
         if (!selectedTask || !selectedUser) return;
         console.log(auth.currentUser?.uid);
+        console.log(selectedTask.id, selectedUser, auth.currentUser?.uid);
+
         shareTask(selectedTask.id, selectedUser, auth.currentUser?.uid)
 
         setShowModal(false);
@@ -66,15 +77,15 @@ export default function Dashboard() {
     };
 
     const handleOpenShareModal = async (task: any) => {
-        
+
         const currentUserEmail = auth.currentUser?.email;
         const response = await getAllUsers()
         const allUsers = response
-        
+
         console.log(allUsers)
-        
+
         const filteredUsers = allUsers?.filter((user: any) => user.email !== currentUserEmail);
-        
+
         setUsers(filteredUsers);
         setSelectedTask(task);
         setShowModal(true);
@@ -114,45 +125,67 @@ export default function Dashboard() {
 
             {/* Tabs */}
             <div className="flex gap-4 mb-4">
-                {['all', 'mine', 'shared'].map((t) => (
+                {['all', 'mine', 'shared', 'shareToMe'].map((t) => (
                     <button
                         key={t}
-                        onClick={() => setTab(t as 'all' | 'mine' | 'shared')}
+                        onClick={() => setTab(t as 'all' | 'mine' | 'shared' | 'shared_to_me')}
                         className={`px-3 py-1 rounded ${tab === t ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
                     >
-                        {t === 'all' ? 'All Tasks' : t === 'mine' ? 'My Tasks' : 'Shared by Me'}
+                        {t === 'all'
+                            ? 'All Tasks'
+                            : t === 'mine'
+                                ? 'My Tasks'
+                                : t === 'shared'
+                                    ? 'Shared by Me'
+                                    : 'Shared to Me'
+                        }
+
                     </button>
                 ))}
             </div>
 
+            {tab === 'shared' ? <SharedByMeTable tasks={tasks} /> : <></>}
+            {tab === 'shareToMe' ? <SharedToMeTable tasks={tasks} /> : <></>}
+
+
             {/* Task Table */}
-            <table className="w-full bg-white shadow-md rounded">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="text-left p-3">Task</th>
-                        <th className="text-left p-3">Created At</th>
-                        <th className="text-left p-3">Created By</th>
-                        <th className="text-left p-3">Share</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {tasks.map((task, index) => (
-                        <tr key={index} className="border-t">
-                            <td className="p-3">{task.name}</td>
-                            <td className="p-3">{new Date(task.createdAt).toLocaleString()}</td>
-                            <td className="p-3">{task.createdBy}</td>
-                            <td className="p-3">
-                                <button
-                                    className="bg-black text-white text-sm px-2 py-1 rounded-md"
-                                    onClick={() => handleOpenShareModal(task)}
-                                >
-                                    Share
-                                </button>
-                            </td>
+            {tab === 'all' || tab === 'mine' ?
+                <table className="w-full bg-white shadow-md rounded">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="text-left p-3">Task</th>
+                            <th className="text-left p-3">Created At</th>
+                            <th className="text-left p-3">Created By</th>
+                            <th className="text-left p-3">Share</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {tasks?.map((task, index) => (
+                            <tr key={index} className="border-t">
+                                <td className="p-3">{task.name}</td>
+                                <td className="p-3">
+                                    {new Date(task.createdAt).toLocaleString()}
+                                </td>
+
+                                <td className="p-3">{task.createdBy}</td>
+
+                                <td className="p-3">
+                                    <button
+                                        className="bg-black text-white text-sm px-2 py-1 rounded-md"
+                                        onClick={() => handleOpenShareModal(task)}
+                                    >
+                                        Share
+                                    </button>
+                                </td>
+
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                :
+                null
+            }
+
 
 
             {showModal && (
@@ -167,7 +200,7 @@ export default function Dashboard() {
                         >
                             <option value="">-- Select a user --</option>
                             {users.map((user) => (
-                                <option key={user._id} value={user._id}>
+                                <option key={user._id} value={user.uid}>
                                     {user.email}
                                 </option>
                             ))}

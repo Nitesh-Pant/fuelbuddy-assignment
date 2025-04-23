@@ -57,4 +57,36 @@ export async function shareRoutes(fastify: FastifyInstance) {
 
 
 
+    // share to loggin user
+    fastify.get('/shareToMe/:id', async (req: any, reply) => {
+        try {
+            const sharedToUid = req.params.id;
+
+            // Fetch all share records where the user is the one who shared
+            const sharedTasks = await Shared.find({ sharedTo: sharedToUid }).sort({ createdAt: -1 }).populate('taskId');;
+
+            const formatted = await Promise.all(
+                sharedTasks.map(async (record) => {
+                    const sharedByUser = await User.findOne({ uid: record.sharedBy });
+                    const sharedToUser = await User.findOne({ uid: record.sharedTo });
+
+                    return {
+                        id: record._id,
+                        task: record.taskId,
+                        sharedBy: sharedByUser?.email || 'Unknown',
+                        sharedTo: sharedToUser?.email || 'Unknown',
+                        date: record.createdAt,
+                    };
+                })
+            );
+
+            reply.send({ sharedTasks: formatted });
+        } catch (err) {
+            console.error(err);
+            reply.status(500).send({ message: 'Failed to fetch shared tasks' });
+        }
+    });
+
+
+
 }
