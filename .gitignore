@@ -14,3 +14,4 @@ yarn-error.log*
 
 # Editor configs
 .vscode/
+serviceAccountKey.json
