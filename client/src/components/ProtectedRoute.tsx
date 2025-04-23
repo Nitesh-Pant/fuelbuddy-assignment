@@ -1,5 +1,4 @@
 import { Navigate } from 'react-router-dom';
-import {getToken} from '../firebase/auth'
 import { JSX } from 'react';
 
 interface ProtectedRouteProps {

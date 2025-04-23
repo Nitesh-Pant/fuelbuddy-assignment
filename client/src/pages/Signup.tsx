@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { signup } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { getIdToken } from 'firebase/auth';
 
 export default function Signup() {
     const [email, setEmail] = useState('');
